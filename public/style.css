@@ -1,0 +1,243 @@
+html, body {
+  position: absolute;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  /* Source: https://www.svgbackgrounds.com/set/free-svg-backgrounds-and-patterns */
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="a" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="%2380F"/><stop offset="1" stop-color="%23f40"/></linearGradient></defs><pattern id="b" width="24" height="24" patternUnits="userSpaceOnUse"><circle fill="%23ffffff" cx="12" cy="12" r="12"/></pattern><rect width="100%" height="100%" fill="url(%23a)"/><rect width="100%" height="100%" fill="url(%23b)" fill-opacity="0.1"/></svg>');
+  background-attachment: fixed;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  color: hsl(0, 80%, 20%);
+  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: bold;
+}
+
+body.dragover {}
+
+#controls-container {
+  margin: 3%;
+  background: hsla(0, 0%, 100%, .3);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s;
+  cursor: pointer;
+}
+
+#controls-container:hover {
+  background: hsla(0, 0%, 100%, .4);
+}
+
+#qrcode {
+  text-align: center;
+}
+
+#qrcode canvas {
+  width: 50%;
+}
+
+#controls-container span {
+  font-size: 1.5rem;
+}
+
+#controls-upload-label-container {
+  margin: 1rem 0;
+  display: flex;
+  align-items: flex-end;
+}
+
+#controls-upload-label-container svg {
+  width: 3rem;
+  stroke: hsl(0, 80%, 20%);
+}
+
+#controls-upload-label-container span {
+  margin-left: 1rem;
+  font-size: 2rem;
+}
+
+#content-container {
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+}
+
+#content-container .scrollbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 100%;
+  opacity: 0;
+  transition: opacity .2s, height .2s;
+}
+
+#content-container .scrollbar::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 8px;
+  height: 100%;
+  background: hsl(330, 80%, 50%, .9);
+  border-radius: 4px;
+  box-shadow: 0 0 8px hsl(330, 80%, 50%, .5),
+              inset 2px 2px 8px hsla(0, 0%, 100%, .3);
+  transform: translateX(-50%);
+}
+
+#cards-container {
+  position: relative;
+  margin: auto;
+  top: 50%;
+  width: 70%;
+  max-width: 480px;
+}
+
+.file-card + .file-card {
+  margin-top: 1rem;
+}
+
+.file-card {
+  position: relative;
+  padding: .5rem;
+  width: 100%;
+  border-radius: 16px;
+  background: hsla(0, 0%, 100%, .8);
+  box-shadow: 0 1px 2px hsl(177deg 86% 10% / 3%),
+              0 2px 5px hsl(177deg 86% 10% / 4%),
+              0 4px 10px hsl(177deg 86% 10% / 5%),
+              0 7px 18px hsl(177deg 86% 10% / 6%), 
+              0 13px 33px hsl(177deg 86% 10% / 7%),
+              0 32px 80px hsl(177deg 86% 10% / 10%);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr 85%;
+  grid-template-rows: 1fr 1fr;
+  overflow: hidden;
+  animation: fade .2s forwards;
+  user-select: none;
+}
+
+.file-card.upload-completed {
+  opacity: .5 !important;
+}
+
+@keyframes fade {
+  from { opacity: 0 }
+  100% { opacity: 1 }
+}
+
+.upload-status-icon {
+  grid-row: span 2;
+  margin: auto;
+  transform: translateX(-.5rem);
+}
+
+.upload-status-icon svg {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+
+.upload-status-icon path {
+  /* Shadow on moving elements drastically reduce performance */
+  /* filter: drop-shadow(0 0 2px); */
+}
+
+.file-card.uploading .upload-status-icon path {
+  /* Uparrow icon */
+  fill: none;
+  stroke: hsl(199, 98%, 48%);
+  stroke-width: 3;
+  d: path("M12 5V19M12 5L6 11M12 5L18 11");
+}
+
+.file-card.upload-completed .upload-status-icon path {
+  /* Checkmark icon */
+  fill: none;
+  stroke: hsl(122, 39%, 49%);
+  stroke-width: 4;
+  d: path("M4 12L8.94975 16.9497L19.5572 6.34326");
+}
+
+.file-card.indexing .upload-status-icon svg {
+  animation: indexing 2s linear infinite;
+}
+
+.file-card.uploading .upload-status-icon svg {
+  animation: uploading 2s linear infinite;
+}
+
+.file-card.upload-completed .upload-status-icon svg {
+  animation: upload-completed .2s linear forwards;
+}
+
+@keyframes indexing {
+  0%, 100% { transform: translateX(  0rem) }
+  25%      { transform: translateX(-.3rem) }
+  75%      { transform: translateX( .3rem) }
+}
+
+@keyframes uploading {
+  0%, 100% { transform: translateY(  0rem) }
+  25%      { transform: translateY(-.3rem) }
+  75%      { transform: translateY( .3rem) }
+}
+
+@keyframes upload-completed {
+  100% { transform: rotate(360deg) }
+}
+
+.file-name-container {
+  display: flex;
+  align-items: center;
+}
+
+.file-name {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.file-ext {
+  max-width: 90%;
+}
+
+.upload-progress-track {
+  position: relative;
+  margin-top: .5rem;
+  border-radius: 99px;
+  box-shadow: inset 4px 4px 8px hsla(0, 0%, 0%, .1);
+  text-align: center;
+}
+
+.upload-progress-thumb {
+  position: absolute;
+  width: 0%;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(145deg, hsl(330, 80%, 50%),
+                                      hsl(300, 70%, 40%));
+  box-shadow: 0 0 8px hsla(315, 80%, 50%, .5),
+              inset 4px 4px 8px hsla(0, 0%, 100%, .5);
+  box-sizing: border-box;
+  text-align: center;
+  transition: width 2s;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.upload-progress-thumb span {
+  color: hsla(0, 0%, 100%, .9);
+  /*
+    Cannot set padding of the thumb instead of creating a child span because
+    "overflow: hidden" only clips content that extends outside the box whereas
+    padding is inside the box, therefore still showing although width is 0.
+  */
+  margin: 0 1rem;
+}

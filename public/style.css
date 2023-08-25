@@ -13,7 +13,23 @@ html, body {
   font-weight: bold;
 }
 
-body.dragover {}
+body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: hsla(350, 80%, 70%, .2);
+  z-index: 1;
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+
+body.dragover::after {
+  opacity: 1;
+}
 
 #controls-container {
   flex: 2;
@@ -29,7 +45,7 @@ body.dragover {}
   user-select: none;
 }
 
-#controls-container:hover {
+body:not(.dragover) #controls-container:hover {
   background: hsla(0, 0%, 100%, .4);
 }
 
@@ -263,11 +279,14 @@ body.dragover {}
   body {
     background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="a" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="%2380f"/><stop offset="1" stop-color="%23f40"/></linearGradient></defs><pattern id="b" width="24" height="24" patternUnits="userSpaceOnUse"><circle fill="%23444" cx="12" cy="12" r="12"/></pattern><rect width="100%" height="100%" fill="url(%23a)"/><rect width="100%" height="100%" fill="url(%23b)" fill-opacity="0.1"/></svg>');
   }
+  body::after {
+    background: hsla(350, 80%, 20%, .2);
+  }
   #controls-container {
     background: hsla(0, 0%, 0%, .4);
     color: hsl(350, 80%, 60%);
   }
-  #controls-container:hover {
+  body:not(.dragover) #controls-container:hover {
     background: hsla(0, 0%, 0%, .5);
   }
   #select-label-container svg {

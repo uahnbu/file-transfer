@@ -22,8 +22,27 @@ events.addEventListener('message', event => {
   fileCard && updateFileCard(fileCard, received, size);
 });
 
-inputElement.addEventListener('change', async () => {
-  const files = Array.from(inputElement.files);
+inputElement.addEventListener('change', () => {
+  handleFilesSelection(Array.from(inputElement.files));
+});
+
+/**
+ * Reference: Retrieve the list of files from the directory.
+ * @see {@link https://stackoverflow.com/questions/3590058#53058574}
+ */
+document.body.addEventListener('drop', event => {
+  document.body.classList.remove('dragover');
+  const files = Array.from(event.dataTransfer.items)
+    .map(item => (
+      item.kind === 'file' &&
+      item.webkitGetAsEntry().isFile &&
+      item.getAsFile()
+    )).filter(Boolean);
+  handleFilesSelection(files);
+  event.preventDefault();
+});
+
+async function handleFilesSelection(/** @type {File[]} */ files) {
   await Promise.all(files.map(async file => {
     const sel = `.file-card[data-uid="${file.name}"]`;
     const fileCard = cardsContainer.querySelector(sel);
@@ -41,58 +60,9 @@ inputElement.addEventListener('change', async () => {
       },
       body: chunk
     });
-
     const writer = new WritableStream({write});
     file.stream().pipeTo(writer);
-
-    /*
-    // Approximately 5 seconds/GiB slower.
-    const reader = new FileReader;
-    for (let offset = 0; offset < file.size;) {
-      const chunk = file.slice(offset, offset += 1024 * 1024);
-      reader.readAsArrayBuffer(chunk);
-      await new Promise((resolve, reject) => {
-        reader.addEventListener('load', resolve);
-        reader.addEventListener('error', reject);
-      });
-      await fetch('/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/octet-stream',
-          'file-name': encodeURI(file.name),
-          'file-size': file.size
-        },
-        body: reader.result
-      });
-    }
-    */
-
-    /*
-    // Cannot handle files larger than 2GiB.
-    const reader = new FileReader;
-    reader.readAsArrayBuffer(file);
-    await new Promise((resolve, reject) => {
-      reader.addEventListener('load', resolve);
-      reader.addEventListener('error', reject);
-    });
-    const payload = reader.result;
-
-    const xhr = new XMLHttpRequest;
-    xhr.open('POST', '/upload');
-    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-    xhr.setRequestHeader('file-name', encodeURI(file.name));
-    xhr.addEventListener('load', () => {
-      if (xhr.readyState !== 4) return;
-      if (xhr.status !== 200) console.error(xhr.statusText);
-    });
-    xhr.addEventListener('error', () => console.error(xhr.statusText));
-    xhr.send(payload);
-    */
   }));
-});
-
-function handleFilesDrop(event) {
-
 }
 
 addEventListener('DOMContentLoaded', async () => {
@@ -103,21 +73,20 @@ addEventListener('DOMContentLoaded', async () => {
   QrCreator.render({ text, fill, size: 360 }, container);
 });
 
-// addEventListener('DOMContentLoaded', () => {
-//   for (let i = 0; i < 10; ++i) {
-//     const size = 1024 * 1024 * 1099;
-//     const fileCard = createFileCard(`test${i}.txt`, size);
-//     const received = Math.random() < .4 ? size : Math.random() * size;
-//     updateFileCard(fileCard, received, size);
-//     cardsContainer.appendChild(fileCard);
-//   }
-// });
+document.body.addEventListener('dragover', event => event.preventDefault());
+document.body.addEventListener('dragenter', function() {
+  this.dragCounter = -~this.dragCounter;
+  this.classList.add('dragover');
+});
+document.body.addEventListener('dragleave', function() {
+  // Dragleave event is fired when the cursor enters a child element.
+  --this.dragCounter || this.classList.remove('dragover');
+});
 
 /**
- * Create a file card.
- * @param {string} fileName The file name.
- * @param {number} fileSize The file size in bytes.
- * @returns {HTMLElement} The file card.
+ * @param {string} fileName
+ * @param {number} fileSize
+ * @returns {HTMLElement}
  */
 function createFileCard(fileName, fileSize) {
   const fileTitle = fileName.match(/(.+?)(?:\.[^.]*$|$)/)[1];
@@ -150,10 +119,9 @@ function createFileCard(fileName, fileSize) {
 }
 
 /**
- * Update a file card's received status.
- * @param {HTMLElement} fileCard The file card.
- * @param {number} received The received bytes.
- * @param {number} size The file size in bytes.
+ * @param {HTMLElement} fileCard
+ * @param {number} received
+ * @param {number} size
  */
 function updateFileCard(fileCard, received, size) {
   const { size: exportedSize, sizeUnit } = exportSize(received);
@@ -177,13 +145,12 @@ function updateFileCard(fileCard, received, size) {
 }
 
 /**
- * Convert a file size in bytes to a human-readable string.
- * @param {number} size The file size in bytes.
- * @returns {{size: number, sizeUnit: string}} The file size and its unit.
+ * @param {number} bytes
+ * @returns {{size: number, sizeUnit: string}}
  */
-function exportSize(size) {
+function exportSize(bytes) {
   const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
   let i = 0;
-  for (; size >= 1024 && i < units.length; ++i) size /= 1024;
-  return { size, sizeUnit: ' ' + units[i] };
+  for (; bytes >= 1024 && i < units.length; ++i) bytes /= 1024;
+  return { size: bytes, sizeUnit: ' ' + units[i] };
 }

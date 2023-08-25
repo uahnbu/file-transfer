@@ -30,7 +30,6 @@ inputElement.addEventListener('change', async () => {
     if (!fileCard) {
       const newFileCard = createFileCard(file.name, file.size);
       cardsContainer.appendChild(newFileCard);
-      scrollbox.updateMeasurements();
     } else updateFileCard(fileCard, 0, file.size);
 
     const write = chunk => fetch('/upload', {
@@ -97,19 +96,21 @@ function handleFilesDrop(event) {
 }
 
 addEventListener('DOMContentLoaded', async () => {
+  const isDarkMode = matchMedia('(prefers-color-scheme: dark)').matches;
   const container = document.querySelector('#qrcode');
   const text = await (await fetch('/address')).text();
-  QrCreator.render({ text, fill: '#5c0a0a', size: 512 }, container);
+  const fill = isDarkMode ? '#eb4763' : '#5c0a18';
+  QrCreator.render({ text, fill, size: 360 }, container);
 });
 
 // addEventListener('DOMContentLoaded', () => {
 //   for (let i = 0; i < 10; ++i) {
-//     const fileName = `test${i}.txt`;
-//     const fileCard = createFileCard(fileName, 1024 * 1024 * 1099);
-//     Math.random() < .3 && fileCard.classList.add('upload-completed');
+//     const size = 1024 * 1024 * 1099;
+//     const fileCard = createFileCard(`test${i}.txt`, size);
+//     const received = Math.random() < .4 ? size : Math.random() * size;
+//     updateFileCard(fileCard, received, size);
 //     cardsContainer.appendChild(fileCard);
 //   }
-//   scrollbox.updateMeasurements();
 // });
 
 /**
@@ -126,8 +127,9 @@ function createFileCard(fileName, fileSize) {
   card.innerHTML = `
     <span class="upload-status-icon">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <g>
-          <path stroke-linecap="round" stroke-linejoin="round"></path>
+        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5V19M12 5L6 11M12 5L18 11" />
+          <path d="M4 12L8.94975 16.9497L19.5572 6.34326"/>
         </g>
       </svg>
     </span>
@@ -163,7 +165,6 @@ function updateFileCard(fileCard, received, size) {
 
   if (received === size) {
     modifyClasses(UploadStages.UploadCompleted);
-    scrollbox.updateMeasurements();
     console.info('File received: ' + fileCard.dataset.uid);
   } else modifyClasses(UploadStages.Uploading);
 

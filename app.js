@@ -23,23 +23,26 @@ const uploadStatusUpdater = {
 
 const fileStorage = {};
 
-const PORT = 8080;
 const nets = os.networkInterfaces()['Wi-Fi'];
 const ip = nets.find(net => net.family === 'IPv4').address;
-const address = `http://${ip}:${PORT}`;  
 
-http
-  .createServer((req, res) => {
-    if (req.method === 'GET') return req.url === '/upload-status'
-      ? handleUploadStatusRequest.call(res)
-      : handleGetRequest.call(res, req.url);
-    if (req.url === '/upload' && req.method === 'POST') {
-      return req.on('data', handleUploadRequest.bind(res, req.headers));
-    }
-    res.writeHead(405);
-    res.end('Method not allowed');
-  })
-  .listen(PORT, () => console.log(`Server is running on ${address}`));
+let address;
+
+const server = http.createServer((req, res) => {
+  if (req.method === 'GET') return req.url === '/upload-status'
+    ? handleUploadStatusRequest.call(res)
+    : handleGetRequest.call(res, req.url);
+  if (req.url === '/upload' && req.method === 'POST') {
+    return req.on('data', handleUploadRequest.bind(res, req.headers));
+  }
+  res.writeHead(405);
+  res.end('Method not allowed');
+});
+
+server.listen(0, () => {
+  address = `http://${ip}:${server.address().port}`;
+  console.log(`Server is running on ${address}`);
+});
 
 function handleUploadStatusRequest() {
   uploadStatusUpdater.response = this;

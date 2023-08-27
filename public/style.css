@@ -49,6 +49,39 @@ body:not(.dragover) #controls-container:hover {
   background: hsla(0, 0%, 100%, .4);
 }
 
+#directory-selector {
+  margin: .5rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: hsla(0, 0%, 100%, .1);
+  border-radius: 99px;
+  border: none;
+  padding: .5rem;
+  cursor: pointer;
+  transition: background .2s, box-shadow .2s;
+}
+
+#directory-selector:hover {
+  background: hsla(0, 0%, 100%, .3);
+  box-shadow: 0  1px  2px hsla(177deg, 86%, 10%, 3%),
+              0  2px  5px hsla(177deg, 86%, 10%, 4%),
+              0  4px 10px hsla(177deg, 86%, 10%, 5%),
+              0  7px 18px hsla(177deg, 86%, 10%, 6%), 
+              0 13px 33px hsla(177deg, 86%, 10%, 7%),
+              0 32px 80px hsla(177deg, 86%, 10%, 10%);
+}
+
+#directory-selector:hover svg {
+  transform: rotate(90deg);
+}
+
+#directory-selector svg {
+  width: 1.5rem;
+  stroke: hsl(350, 80%, 40%);
+  transition: transform .2s;
+}
+
 #qrcode {
   margin: 0 1rem;
   position: relative;
@@ -289,6 +322,13 @@ body:not(.dragover) #controls-container:hover {
   body:not(.dragover) #controls-container:hover {
     background: hsla(0, 0%, 0%, .5);
   }
+  #directory-selector {
+    background: hsla(0, 0%, 0%, .1);
+  }
+  #directory-selector:hover {
+    background: hsla(0, 0%, 0%, .3);
+  }
+  #directory-selector svg,
   #select-label-container svg {
     stroke: hsl(350deg, 60%, 40%);
   }

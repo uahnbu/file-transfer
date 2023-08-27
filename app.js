@@ -13,6 +13,7 @@ const urlMap = {
 };
 
 const uploadStatusUpdater = {
+  /** @type {http.ServerResponse} */
   response: null,
   pushStatus(data) {
     if (!this.response) return;
@@ -21,6 +22,15 @@ const uploadStatusUpdater = {
   }
 };
 
+/**
+ * @typedef {Object} FileCache
+ * @property {fs.WriteStream} writeStream
+ * @property {number} size
+ * @property {number} receivedSize
+ * @property {string} modifiedFileName
+ */
+
+/** @type {Object<string, FileCache>} */
 const fileStorage = {};
 
 const nets = os.networkInterfaces()['Wi-Fi'];
@@ -29,9 +39,11 @@ const ip = nets.find(net => net.family === 'IPv4').address;
 let address;
 
 const server = http.createServer((req, res) => {
-  if (req.method === 'GET') return req.url === '/upload-status'
-    ? handleUploadStatusRequest.call(res)
-    : handleGetRequest.call(res, req.url);
+  if (req.method === 'GET') switch (req.url) {
+    case '/address': return res.end(address);
+    case '/upload-status': return handleUploadStatusRequest.call(res);
+    default: return handleGetRequest.call(res, req.url);
+  }
   if (req.url === '/upload' && req.method === 'POST') {
     return req.on('data', handleUploadRequest.bind(res, req.headers));
   }
@@ -41,9 +53,12 @@ const server = http.createServer((req, res) => {
 
 server.listen(0, () => {
   address = `http://${ip}:${server.address().port}`;
-  console.log(`Server is running on ${address}`);
+  console.log('Server is running on ' + address);
 });
 
+/**
+ * @this {http.ServerResponse}
+ */
 function handleUploadStatusRequest() {
   uploadStatusUpdater.response = this;
   this.writeHead(200, {
@@ -53,19 +68,25 @@ function handleUploadStatusRequest() {
   });
 }
 
+/**
+ * @param {string} url
+ */
 function handleGetRequest(url) {
-  // res.end: Data is sent as a whole.
-  if (url === '/address') return this.end(address);
   if (!urlMap.hasOwnProperty(url)) {
     this.writeHead(404);
     return this.end('Not found');
   }
   const filePath = path.join(__dirname, urlMap[url]);
+  // res.end  : Data is sent as a whole.
   // res.write: Data is sent in a series of chunks.
   this.write(fs.readFileSync(filePath));
   return this.end();
 }
 
+/**
+ * @param {http.IncomingHttpHeaders} headers
+ * @param {Uint8Array} data
+ */
 function handleUploadRequest(headers, data) {
   const fileName = decodeURI(headers['file-name']);
   const fileSize = +headers['file-size'];
@@ -75,30 +96,54 @@ function handleUploadRequest(headers, data) {
   } else this.end();
 }
 
+/**
+ * @param {Uint8Array} data
+ * @param {string} fileName
+ * @param {number} fileSize
+ * @returns {boolean}
+ */
 function handleData(data, fileName, fileSize) {
   const re = /^[^<>:"/\\|?*]+$/;
   if (!re.test(fileName)) return false;
-  const file = fileStorage[fileName] = fileStorage[fileName] || {};
-  if (!file.size) {
-    const filePath = path.join(__dirname, 'uploads', fileName);
-    file.writeStream = fs.createWriteStream(filePath);
-    file.size = fileSize;
-    file.receivedSize = 0;
-  }
 
-  file.writeStream.write(data, 'binary');
-  file.receivedSize += data.length;
-  console.log(`${fileName}: ${file.receivedSize}/${file.size}`);
+  if (!fileStorage[fileName]) {
+    const modifiedFileName = generateUnusedFileName(fileName);
+    const filePath = path.join(downloadPath, modifiedFileName);
+    fileStorage[fileName] = {
+      writeStream: fs.createWriteStream(filePath),
+      size: fileSize,
+      receivedSize: 0
+    };
+  }
+  const cache = fileStorage[fileName];
+  // TODO: Write file metadata as well.
+  cache.writeStream.write(data, 'binary');
+  cache.receivedSize += data.length;
+  // console.log(`${fileName}: ${cache.receivedSize}/${cache.size}`);
   uploadStatusUpdater.pushStatus({
     fileName,
-    received: file.receivedSize,
-    size: file.size
+    received: cache.receivedSize,
+    size: cache.size
   });
-
-  if (file.receivedSize === file.size) {
-    file.writeStream.end();
+  if (cache.receivedSize === cache.size) {
+    cache.writeStream.end();
     delete fileStorage[fileName];
     console.log('File received:', fileName);
   }
   return true;
+}
+
+/**
+ * @param {string} fileName
+ * @returns {string}
+ */
+function generateUnusedFileName(fileName) {
+  const fileExt = path.extname(fileName);
+  const fileTitle = fileName.slice(0, -fileExt.length);
+  for (let i = 2, newFileName = fileName;; ++i) {
+    const filePath = path.join(downloadPath, newFileName);
+    // TODO: fs sync methods block the event loop.
+    if (!fs.existsSync(filePath)) return newFileName;
+    newFileName = `${fileTitle} (${i})${fileExt}`;
+  }
 }

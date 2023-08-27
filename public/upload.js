@@ -19,7 +19,8 @@ events.addEventListener('message', event => {
   const { fileName, received, size } = data;
   const sel = `.file-card[data-uid="${fileName}"]`;
   const fileCard = cardsContainer.querySelector(sel);
-  fileCard && updateFileCard(fileCard, received, size);
+  if (fileCard) updateFileCard(fileCard, received, size);
+  else createFileCard(fileName, size);
 });
 
 inputElement.addEventListener('change', () => {
@@ -46,11 +47,10 @@ async function handleFilesSelection(/** @type {File[]} */ files) {
   await Promise.all(files.map(async file => {
     const sel = `.file-card[data-uid="${file.name}"]`;
     const fileCard = cardsContainer.querySelector(sel);
-    if (!fileCard) {
-      const newFileCard = createFileCard(file.name, file.size);
-      cardsContainer.appendChild(newFileCard);
-    } else updateFileCard(fileCard, 0, file.size);
+    if (fileCard) return;
+    createFileCard(file.name, file.size);
 
+    /** @param {Uint8Array} chunk */
     const write = chunk => fetch('/upload', {
       method: 'POST',
       headers: {
@@ -111,11 +111,10 @@ function createFileCard(fileName, fileSize) {
       <span>${size.toFixed(2) + sizeUnit}</span>
     </div>
   `;
-  card.title = fileName;
+  card.title = card.dataset.uid = fileName;
   card.classList.add('file-card');
-  card.dataset.uid = fileName;
   updateFileCard(card, 0, fileSize);
-  return card;
+  cardsContainer.appendChild(card);
 }
 
 /**

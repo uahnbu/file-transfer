@@ -3,16 +3,6 @@ const path = require('path');
 
 const { downloadPath } = require('../main');
 
-const uploadStatusUpdater = {
-  /** @type {http.ServerResponse} */
-  response: null,
-  pushStatus(data) {
-    if (!this.response) return;
-    this.response.write('data: ' + JSON.stringify(data));
-    this.response.write('\n\n');
-  }
-};
-
 /**
  * @typedef {Object} FileCache
  * @property {fs.WriteStream} writeStream
@@ -24,11 +14,15 @@ const uploadStatusUpdater = {
 /** @type {Object<string, FileCache>} */
 const fileStorage = {};
 
+/** @type {Set<http.ServerResponse>} */
+const clients = new Set;
+
 /**
  * @this {http.ServerResponse}
  */
 function handleUploadStatusRequest() {
-  uploadStatusUpdater.response = this;
+  console.log('New client connected.');
+  clients.add(this);
   this.writeHead(200, {
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
@@ -75,11 +69,11 @@ function handleData(data, fileName, fileSize) {
   cache.writeStream.write(data, 'binary');
   cache.receivedSize += data.length;
   // console.log(`${fileName}: ${cache.receivedSize}/${cache.size}`);
-  uploadStatusUpdater.pushStatus({
+  pushUploadStatus({
     fileName,
     received: cache.receivedSize,
     size: cache.size
-  });
+  }, cache.receivedSize === cache.size);
 
   if (cache.receivedSize === cache.size) {
     cache.writeStream.end();
@@ -102,6 +96,22 @@ function generateUnusedFileName(fileName) {
     if (!fs.existsSync(filePath)) return newFileName;
     newFileName = `${fileTitle} (${i})${fileExt}`;
   }
+}
+
+let pingable = true;
+
+/**
+ * @param {Object} data
+ * @param {boolean?} forced
+ */
+function pushUploadStatus(data, forced) {
+  if (!pingable && !forced) return;
+  clients.forEach(client => {
+    client.write('data: ' + JSON.stringify(data));
+    client.write('\n\n');
+  });
+  pingable = false;
+  setTimeout(() => pingable = true, 100);
 }
 
 module.exports = {

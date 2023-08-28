@@ -17,6 +17,10 @@ events.addEventListener('message', event => {
   else createFileCard(fileName, size);
 });
 
+inputElement.addEventListener('change', () => {
+  handleFilesSelection(Array.from(inputElement.files));
+});
+
 /**
  * @param {File[]} files
  */

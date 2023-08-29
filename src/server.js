@@ -17,12 +17,25 @@ const urlMap = {
   '/qrcode.js': '../public/qrcode.js',
 };
 
-const nets = os.networkInterfaces()['Wi-Fi'];
+const netInterfaces = os.networkInterfaces();
+const nets = netInterfaces['Wi-Fi'] || netInterfaces['en0'];
 const ip = nets.find(net => net.family === 'IPv4').address;
+
+// console.log(
+//   Object.entries(netInterfaces)
+//     .map(([name, net]) => [name].concat(
+//       net.filter(net => (
+//         net.family === 'IPv4' &&
+//         net.address.startsWith('192.168.') &&
+//         +net.address.split('.')[2] < 10
+//       ))
+//     ))
+// );
 
 let address;
 
 const server = http.createServer((req, res) => {
+  // console.log('XFF:', req.socket.remoteAddress, req.headers['x-forwarded-for']);
   if (req.method === 'GET') switch (req.url) {
     case '/address': return res.end(address);
     case '/upload-status': return handleUploadStatusRequest.call(res);

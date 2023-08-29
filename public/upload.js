@@ -18,9 +18,11 @@ events.addEventListener('message', event => {
   const data = JSON.parse(event.data);
   const { fileName, received, size } = data;
   const sel = `.file-card[data-uid="${fileName}"]`;
-  const fileCard = cardsContainer.querySelector(sel);
-  if (fileCard) updateFileCard(fileCard, received, size);
-  else createFileCard(fileName, size);
+  const fileCard = (
+    cardsContainer.querySelector(sel) ||
+    createFileCard(fileName, size)
+  );
+  updateFileCard(fileCard, received, size);
 });
 
 inputElement.addEventListener('change', () => {
@@ -115,6 +117,7 @@ function createFileCard(fileName, fileSize) {
   card.classList.add('file-card');
   updateFileCard(card, 0, fileSize);
   cardsContainer.appendChild(card);
+  return card;
 }
 
 /**
